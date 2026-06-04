@@ -1,0 +1,13 @@
+{
+  "name": "navel-tool",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}

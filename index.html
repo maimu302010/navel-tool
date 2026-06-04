@@ -185,6 +185,7 @@
     }
 
     .query-card,
+    .candidate-card,
     .history-card {
       border: 1px solid #d9e0e7;
       border-radius: 8px;
@@ -211,6 +212,42 @@
       margin: 0 0 8px;
       color: #586a7c;
       font-size: 13px;
+    }
+
+    .candidate-title {
+      margin: 0 0 8px;
+      color: #17202a;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .candidate-domain,
+    .candidate-snippet {
+      margin: 0 0 8px;
+      color: #586a7c;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 12px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      background: #e7f3f5;
+      color: #1f6673;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .score {
+      background: #f1f4f7;
+      color: #33475b;
     }
 
     .disabled-link {
@@ -260,7 +297,7 @@
         <p class="field-error" id="chapterError"></p>
 
         <div class="actions">
-          <button class="primary" type="submit">生成入口</button>
+          <button class="primary" type="submit">搜索候选</button>
           <button id="saveRecordButton" class="secondary" type="button">保存记录</button>
         </div>
       </form>
@@ -268,11 +305,11 @@
 
     <section class="panel results-panel" aria-labelledby="results-title">
       <div class="section-head">
-        <h2 id="results-title">搜索入口</h2>
+        <h2 id="results-title">候选结果</h2>
         <button id="openAllButton" class="secondary small" type="button" disabled>打开全部</button>
       </div>
       <div id="message" class="message" role="status"></div>
-      <div id="queryList" class="query-list empty">输入书名和章节后生成入口</div>
+      <div id="queryList" class="query-list empty">输入书名和章节后搜索候选</div>
     </section>
 
     <section class="panel history-panel" aria-labelledby="history-title">
@@ -296,7 +333,10 @@
     const sessionRecords = [];
 
     const state = {
-      queries: []
+      queries: [],
+      candidates: [],
+      fallbackLinks: [],
+      loading: false
     };
 
     const elements = {
@@ -367,32 +407,52 @@
       })[char]);
     }
 
-    function renderQueries() {
-      if (state.queries.length === 0) {
+    function renderResults() {
+      if (state.loading) {
         elements.queryList.className = "query-list empty";
-        elements.queryList.textContent = "输入书名和章节后生成入口";
+        elements.queryList.textContent = "搜索中...";
         elements.openAllButton.disabled = true;
         return;
       }
 
-      elements.queryList.className = "query-list";
-      elements.queryList.innerHTML = state.queries.map((query) => {
-        const links = buildSearchLinks(query).map((link) => (
-          `<a class="button-link small" href="${link.url}" target="_blank" rel="noopener noreferrer">${link.provider}</a>`
-        )).join("");
+      if (state.candidates.length > 0) {
+        elements.queryList.className = "query-list";
+        elements.queryList.innerHTML = state.candidates.map((candidate) => `
+          <article class="candidate-card">
+            <p class="candidate-title">${escapeHtml(candidate.title)}</p>
+            <p class="candidate-domain">${escapeHtml(candidate.domain || "")}</p>
+            <p class="candidate-snippet">${escapeHtml(candidate.snippet || "")}</p>
+            <div class="badge-row">
+              <span class="badge score">相关度 ${escapeHtml(candidate.score || 0)}</span>
+              ${(candidate.badges || []).map((badge) => `<span class="badge">${escapeHtml(badge)}</span>`).join("")}
+            </div>
+            <a class="button-link small" href="${escapeHtml(candidate.url)}" target="_blank" rel="noopener noreferrer">打开候选</a>
+          </article>
+        `).join("");
+        elements.openAllButton.disabled = false;
+        return;
+      }
 
-        return `
+      if (state.fallbackLinks.length > 0) {
+        elements.queryList.className = "query-list";
+        elements.queryList.innerHTML = `
           <article class="query-card">
-            <p class="query-text">${escapeHtml(query)}</p>
-            <div class="provider-row">${links}</div>
+            <p class="query-text">备用搜索入口</p>
+            <div class="provider-row">
+              ${state.fallbackLinks.map((link) => `<a class="button-link small" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.provider)}</a>`).join("")}
+            </div>
           </article>
         `;
-      }).join("");
+        elements.openAllButton.disabled = false;
+        return;
+      }
 
-      elements.openAllButton.disabled = false;
+      elements.queryList.className = "query-list empty";
+      elements.queryList.textContent = "输入书名和章节后搜索候选";
+      elements.openAllButton.disabled = true;
     }
 
-    function generateFromForm() {
+    async function searchFromForm() {
       const title = normalizeTitle(elements.titleInput.value);
       const chapter = normalizeChapter(elements.chapterInput.value);
       const errors = validateInput(title, chapter);
@@ -400,14 +460,41 @@
 
       if (Object.keys(errors).length > 0) {
         state.queries = [];
-        renderQueries();
-        showMessage("输入修一下，再生成。");
+        state.candidates = [];
+        state.fallbackLinks = [];
+        renderResults();
+        showMessage("输入修一下，再搜索。");
         return null;
       }
 
       state.queries = buildQueries(title, chapter);
-      renderQueries();
-      showMessage(`已生成 ${state.queries.length} 组搜索入口。`);
+      state.fallbackLinks = state.queries.flatMap(buildSearchLinks);
+      state.candidates = [];
+      state.loading = true;
+      renderResults();
+      showMessage("正在搜索候选结果...");
+
+      try {
+        const response = await fetch(`/api/search?title=${encodeURIComponent(title)}&chapter=${encodeURIComponent(chapter)}`);
+        const data = await response.json();
+        state.candidates = data.results || [];
+        state.fallbackLinks = data.fallbackLinks || state.fallbackLinks;
+
+        if (!response.ok) {
+          showMessage(data.message || "搜索失败，先用备用入口。");
+        } else if (state.candidates.length === 0) {
+          showMessage("没有抓到候选结果，先用备用入口。");
+        } else {
+          showMessage(`找到 ${state.candidates.length} 个候选结果。`);
+        }
+      } catch (error) {
+        state.candidates = [];
+        showMessage("本地服务不可用，先用备用入口。");
+      } finally {
+        state.loading = false;
+        renderResults();
+      }
+
       return { title, chapter };
     }
 
@@ -492,13 +579,17 @@
       return getRecords().find((record) => record.id === id);
     }
 
-    elements.form.addEventListener("submit", (event) => {
+    elements.form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      generateFromForm();
+      await searchFromForm();
     });
 
     elements.openAllButton.addEventListener("click", () => {
-      state.queries.flatMap(buildSearchLinks).forEach((link) => {
+      const links = state.candidates.length > 0
+        ? state.candidates.map((candidate) => ({ url: candidate.url }))
+        : state.fallbackLinks;
+
+      links.forEach((link) => {
         window.open(link.url, "_blank", "noopener,noreferrer");
       });
     });
@@ -507,18 +598,24 @@
       elements.titleInput.value = "";
       elements.chapterInput.value = "";
       state.queries = [];
+      state.candidates = [];
+      state.fallbackLinks = [];
       renderErrors({});
-      renderQueries();
+      renderResults();
       showMessage("");
       elements.titleInput.focus();
     });
 
     elements.saveRecordButton.addEventListener("click", () => {
-      const result = generateFromForm();
-      if (!result) {
+      const title = normalizeTitle(elements.titleInput.value);
+      const chapter = normalizeChapter(elements.chapterInput.value);
+      const errors = validateInput(title, chapter);
+      renderErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        showMessage("输入修一下，再保存。");
         return;
       }
-      upsertRecord(result.title, result.chapter);
+      upsertRecord(title, chapter);
       showMessage("记录已保存。");
     });
 
@@ -536,7 +633,7 @@
       if (event.target.classList.contains("use-record")) {
         elements.titleInput.value = record.title;
         elements.chapterInput.value = record.chapter;
-        generateFromForm();
+        searchFromForm();
       }
 
       if (event.target.classList.contains("save-url")) {
@@ -558,7 +655,7 @@
       showMessage("最近记录已清空。");
     });
 
-    renderQueries();
+    renderResults();
     renderHistory();
   </script>
 </body>
