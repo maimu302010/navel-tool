@@ -1,8 +1,8 @@
-# Novel Chapter Navigator Implementation Plan
+# Chapter Navigator Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a dependency-free local web page that generates novel chapter search links and stores lightweight reading shortcuts.
+**Goal:** Build a dependency-free local web page that generates chapter search links and stores lightweight reading shortcuts.
 
 **Architecture:** Use one static `index.html` with embedded CSS and JavaScript. JavaScript is split into focused functions for query generation, provider URL generation, storage, validation, and rendering.
 
@@ -38,13 +38,13 @@ Create `index.html` with a compact app shell:
       <div class="title-row">
         <div>
           <p class="eyebrow">Chapter Navigator</p>
-          <h1 id="search-title">小说章节定位</h1>
+          <h1 id="search-title">内容章节定位</h1>
         </div>
         <button class="icon-button" id="clearFormButton" type="button" aria-label="清空输入" title="清空输入">×</button>
       </div>
 
       <form id="searchForm" novalidate>
-        <label for="titleInput">书名</label>
+        <label for="titleInput">名称</label>
         <input id="titleInput" name="title" autocomplete="off" placeholder="重生2014我刑侦之王">
         <p class="field-error" id="titleError"></p>
 
@@ -65,7 +65,7 @@ Create `index.html` with a compact app shell:
         <button id="openAllButton" class="secondary small" type="button" disabled>打开全部</button>
       </div>
       <div id="message" class="message" role="status"></div>
-      <div id="queryList" class="query-list empty">输入书名和章节后生成入口</div>
+      <div id="queryList" class="query-list empty">输入名称和章节后生成入口</div>
     </section>
 
     <section class="panel history-panel" aria-labelledby="history-title">
@@ -375,7 +375,7 @@ function normalizeChapter(value) {
 function validateInput(title, chapter) {
   const errors = {};
   if (!title) {
-    errors.title = "填个书名先。";
+    errors.title = "填个名称先。";
   }
   if (!/^[1-9]\d*$/.test(chapter)) {
     errors.chapter = "章节要是正整数。";
@@ -410,7 +410,7 @@ function renderErrors(errors) {
 function renderQueries() {
   if (state.queries.length === 0) {
     elements.queryList.className = "query-list empty";
-    elements.queryList.textContent = "输入书名和章节后生成入口";
+    elements.queryList.textContent = "输入名称和章节后生成入口";
     elements.openAllButton.disabled = true;
     return;
   }
@@ -666,13 +666,13 @@ Replace `README.md` content with:
 ```markdown
 # navel-tool
 
-A tiny local novel chapter navigation helper.
+A tiny local chapter navigation helper.
 
 ## Use
 
 Open `index.html` directly in a browser, enter a book title and chapter number, then generate search-engine entry links.
 
-The tool stores recent records and user-pasted chapter shortcuts in browser `localStorage`. It does not fetch, render, cache, or download novel text.
+The tool stores recent records and user-pasted chapter shortcuts in browser `localStorage`. It does not fetch, render, cache, or download page text.
 ```
 
 - [ ] **Step 2: Run final manual verification**
@@ -683,15 +683,15 @@ Open `index.html` directly in a browser and verify:
 - Provider links open encoded search URLs.
 - Recent records persist after refresh.
 - Pasted shortcut validation accepts `https://example.com` and rejects `abc`.
-- No code path fetches novel content.
+- No code path fetches page content.
 
 - [ ] **Step 3: Commit**
 
 Run:
 
 ```bash
-git add index.html README.md docs/superpowers/plans/2026-06-04-novel-chapter-navigator.md
-git commit -m "Build novel chapter navigator"
+git add index.html README.md docs/superpowers/plans/2026-06-04-chapter-navigator.md
+git commit -m "Build chapter navigator"
 ```
 
 Expected: commit succeeds with the static app, README update, and plan document.

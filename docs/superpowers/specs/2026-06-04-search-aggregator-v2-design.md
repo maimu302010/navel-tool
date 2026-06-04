@@ -2,9 +2,9 @@
 
 ## Goal
 
-Upgrade `navel-tool` from a search-link launcher into a local search aggregator that returns ranked candidate chapter pages for a given novel title and chapter number.
+Upgrade `navel-tool` from a search-link launcher into a local search aggregator that returns ranked candidate chapter pages for a given title and chapter number.
 
-The tool should reduce manual searching. It should still avoid fetching, displaying, caching, or redistributing chapter正文. It only handles search-result metadata and user-opened links.
+The tool should reduce manual searching. It should still avoid fetching, displaying, caching, or redistributing chapter章节. It only handles search-result metadata and user-opened links.
 
 ## Scope
 
@@ -23,7 +23,7 @@ First V2 release:
 Out of scope:
 
 - Fetching candidate chapter pages.
-- Rendering or caching novel chapter content.
+- Rendering or caching page body.
 - Circumventing login, paywalls, CAPTCHAs, or anti-bot systems.
 - Multi-source scraping beyond search-result pages.
 - Browser automation as the normal search path.
@@ -77,7 +77,7 @@ Success response:
       "domain": "example.com",
       "snippet": "搜索结果摘要",
       "score": 85,
-      "badges": ["书名命中", "章节命中"]
+      "badges": ["名称命中", "章节命中"]
     }
   ],
   "fallbackLinks": []
@@ -89,7 +89,7 @@ Validation error response:
 ```json
 {
   "error": "INVALID_INPUT",
-  "message": "书名和章节必填，章节必须是正整数。"
+  "message": "名称和章节必填，章节必须是正整数。"
 }
 ```
 

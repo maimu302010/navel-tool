@@ -1,10 +1,10 @@
-# Novel Chapter Navigator Design
+# Chapter Navigator Design
 
 ## Goal
 
-Build a small local web tool for quickly locating candidate search results for a novel chapter. The tool helps the user enter a book title and chapter number, generate useful search links, and keep lightweight reading shortcuts.
+Build a small local web tool for quickly locating candidate search results for a chapter. The tool helps the user enter a book title and chapter number, generate useful search links, and keep lightweight reading shortcuts.
 
-The tool is a navigator, not a content scraper. It must not fetch, display, download, cache, or redistribute novel chapter text.
+The tool is a navigator, not a content scraper. It must not fetch, display, download, cache, or redistribute page body.
 
 ## Scope
 
@@ -25,7 +25,7 @@ Out of scope:
 
 - Automatically scraping search result pages.
 - Fetching chapter pages.
-- Rendering novel正文 inside the tool.
+- Rendering page text inside the tool.
 - Circumventing login, paywalls, access controls, or anti-bot systems.
 - Batch downloading or archiving chapters.
 
@@ -105,4 +105,4 @@ Manual checks are enough for the first version:
 - Recent records persist after refresh.
 - Duplicate save updates the old record.
 - Invalid input does not generate broken links.
-- The page never displays fetched novel content.
+- The page never displays fetched page content.

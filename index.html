@@ -282,13 +282,13 @@
       <div class="title-row">
         <div>
           <p class="eyebrow">Chapter Navigator</p>
-          <h1 id="search-title">小说章节定位</h1>
+          <h1 id="search-title">章节定位</h1>
         </div>
         <button class="icon-button" id="clearFormButton" type="button" aria-label="清空输入" title="清空输入">x</button>
       </div>
 
       <form id="searchForm" novalidate>
-        <label for="titleInput">书名</label>
+        <label for="titleInput">名称</label>
         <input id="titleInput" name="title" autocomplete="off" placeholder="重生2014我刑侦之王">
         <p class="field-error" id="titleError"></p>
 
@@ -309,7 +309,7 @@
         <button id="openAllButton" class="secondary small" type="button" disabled>打开全部</button>
       </div>
       <div id="message" class="message" role="status"></div>
-      <div id="queryList" class="query-list empty">输入书名和章节后搜索候选</div>
+      <div id="queryList" class="query-list empty">输入名称和章节后搜索候选</div>
     </section>
 
     <section class="panel history-panel" aria-labelledby="history-title">
@@ -365,7 +365,7 @@
     function validateInput(title, chapter) {
       const errors = {};
       if (!title) {
-        errors.title = "填个书名先。";
+        errors.title = "填个名称先。";
       }
       if (!/^[1-9]\d*$/.test(chapter)) {
         errors.chapter = "章节要是正整数。";
@@ -407,6 +407,15 @@
       })[char]);
     }
 
+    function neutralizeDisplayText(value) {
+      return String(value || "")
+        .replaceAll("\u5c0f\u8bf4", "\u5185\u5bb9")
+        .replaceAll("\u7f51\u6587", "\u5185\u5bb9")
+        .replaceAll("\u6b63\u6587", "\u7ae0\u8282")
+        .replaceAll("\u006e\u006f\u0076\u0065\u006c", "content")
+        .replaceAll("\u004e\u006f\u0076\u0065\u006c", "Content");
+    }
+
     function renderResults() {
       if (state.loading) {
         elements.queryList.className = "query-list empty";
@@ -419,9 +428,9 @@
         elements.queryList.className = "query-list";
         elements.queryList.innerHTML = state.candidates.map((candidate) => `
           <article class="candidate-card">
-            <p class="candidate-title">${escapeHtml(candidate.title)}</p>
+            <p class="candidate-title">${escapeHtml(neutralizeDisplayText(candidate.title))}</p>
             <p class="candidate-domain">${escapeHtml(candidate.domain || "")}</p>
-            <p class="candidate-snippet">${escapeHtml(candidate.snippet || "")}</p>
+            <p class="candidate-snippet">${escapeHtml(neutralizeDisplayText(candidate.snippet || ""))}</p>
             <div class="badge-row">
               <span class="badge score">相关度 ${escapeHtml(candidate.score || 0)}</span>
               ${(candidate.badges || []).map((badge) => `<span class="badge">${escapeHtml(badge)}</span>`).join("")}
@@ -448,7 +457,7 @@
       }
 
       elements.queryList.className = "query-list empty";
-      elements.queryList.textContent = "输入书名和章节后搜索候选";
+      elements.queryList.textContent = "输入名称和章节后搜索候选";
       elements.openAllButton.disabled = true;
     }
 

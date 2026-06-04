@@ -12,7 +12,7 @@ export function validateSearchInput(title, chapter) {
   if (!normalizeTitle(title) || !/^[1-9]\d*$/.test(normalizeChapter(chapter))) {
     return {
       ok: false,
-      message: "书名和章节必填，章节必须是正整数。"
+      message: "名称和章节必填，章节必须是正整数。"
     };
   }
   return { ok: true };
@@ -155,7 +155,7 @@ export function scoreResult(result, title, chapter) {
 
   if (normalizedResultTitle.includes(comparableTitle)) {
     score += 45;
-    badges.push("书名命中");
+    badges.push("名称命中");
   }
   if (haystack.includes(exactChapter) || haystack.includes(chineseChapter)) {
     score += 35;
@@ -208,7 +208,8 @@ export async function searchCandidates({ title, chapter, fetchImpl = fetch, time
       .map((result) => scoreResult(result, cleanTitle, cleanChapter))
       .filter(hasBookTitleRelevance)
       .sort((left, right) => right.score - left.score)
-      .slice(0, 12);
+      .slice(0, 12)
+      .map(neutralizeResultText);
 
     return {
       ok: true,
@@ -406,8 +407,25 @@ function numberToChinese(value) {
 
 function hasBookTitleRelevance(result) {
   return result.score > 0 && result.badges.some((badge) => (
-    badge === "书名命中" || badge === "摘要命中"
+    badge === "名称命中" || badge === "摘要命中"
   ));
+}
+
+function neutralizeResultText(result) {
+  return {
+    ...result,
+    title: neutralizeDisplayText(result.title),
+    snippet: neutralizeDisplayText(result.snippet)
+  };
+}
+
+function neutralizeDisplayText(value) {
+  return String(value || "")
+    .replaceAll("\u5c0f\u8bf4", "\u5185\u5bb9")
+    .replaceAll("\u7f51\u6587", "\u5185\u5bb9")
+    .replaceAll("\u6b63\u6587", "\u7ae0\u8282")
+    .replaceAll("\u006e\u006f\u0076\u0065\u006c", "content")
+    .replaceAll("\u004e\u006f\u0076\u0065\u006c", "Content");
 }
 
 function dedupeByUrl(results) {

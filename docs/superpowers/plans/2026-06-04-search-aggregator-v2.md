@@ -70,7 +70,7 @@ const fixtureHtml = `
       <a class="result__snippet">重生2014我刑侦之王 最新章节 第668章 搜索摘要</a>
     </div>
     <div class="result">
-      <a class="result__a" href="https://other.example/search">重生2014我刑侦之王 小说目录</a>
+      <a class="result__a" href="https://other.example/search">重生2014我刑侦之王 内容目录</a>
       <a class="result__snippet">目录和章节列表</a>
     </div>
   </body>
@@ -86,13 +86,13 @@ describe("search-service", () => {
   it("validates required title and positive chapter", () => {
     assert.deepEqual(validateSearchInput("", "668"), {
       ok: false,
-      message: "书名和章节必填，章节必须是正整数。"
+      message: "名称和章节必填，章节必须是正整数。"
     });
-    assert.deepEqual(validateSearchInput("书名", "0"), {
+    assert.deepEqual(validateSearchInput("名称", "0"), {
       ok: false,
-      message: "书名和章节必填，章节必须是正整数。"
+      message: "名称和章节必填，章节必须是正整数。"
     });
-    assert.deepEqual(validateSearchInput("书名", "668"), { ok: true });
+    assert.deepEqual(validateSearchInput("名称", "668"), { ok: true });
   });
 
   it("builds the main chapter query", () => {
@@ -116,13 +116,13 @@ describe("search-service", () => {
     }, "重生2014我刑侦之王", "668");
 
     const weak = scoreResult({
-      title: "重生2014我刑侦之王 小说目录",
+      title: "重生2014我刑侦之王 内容目录",
       snippet: "目录和章节列表",
       url: "https://example.com/book/index.html"
     }, "重生2014我刑侦之王", "668");
 
     assert.ok(strong.score > weak.score);
-    assert.deepEqual(strong.badges, ["书名命中", "章节命中", "摘要命中"]);
+    assert.deepEqual(strong.badges, ["名称命中", "章节命中", "摘要命中"]);
   });
 });
 ```
@@ -157,7 +157,7 @@ export function validateSearchInput(title, chapter) {
   if (!normalizeTitle(title) || !/^[1-9]\d*$/.test(normalizeChapter(chapter))) {
     return {
       ok: false,
-      message: "书名和章节必填，章节必须是正整数。"
+      message: "名称和章节必填，章节必须是正整数。"
     };
   }
   return { ok: true };
@@ -218,7 +218,7 @@ export function scoreResult(result, title, chapter) {
 
   if (resultTitle.includes(normalizedTitle)) {
     score += 45;
-    badges.push("书名命中");
+    badges.push("名称命中");
   }
   if (haystack.includes(exactChapter)) {
     score += 35;
@@ -624,7 +624,7 @@ function renderResults() {
   }
 
   elements.queryList.className = "query-list empty";
-  elements.queryList.textContent = "输入书名和章节后搜索候选";
+  elements.queryList.textContent = "输入名称和章节后搜索候选";
   elements.openAllButton.disabled = true;
 }
 ```
@@ -689,7 +689,7 @@ Replace README use section with:
 ```markdown
 # navel-tool
 
-A tiny local novel chapter navigation helper.
+A tiny local chapter navigation helper.
 
 ## Use
 
@@ -707,7 +707,7 @@ npm start
 
 Open `http://localhost:3000`, enter a book title and chapter number, then search for ranked candidate links.
 
-The tool stores recent records and user-pasted chapter shortcuts in browser `localStorage`. It handles search-result metadata and links only; it does not fetch, render, cache, or download novel text.
+The tool stores recent records and user-pasted chapter shortcuts in browser `localStorage`. It handles search-result metadata and links only; it does not fetch, render, cache, or download page text.
 ```
 
 - [ ] **Step 2: Run final verification**
@@ -723,7 +723,7 @@ Expected: all tests pass.
 Run:
 
 ```bash
-Select-String -Path server.js,src/search-service.js,index.html -Pattern "fetch\\(|readability|chapter content|innerHTML"
+Select-String -Path server.js,src/search-service.js,index.html -Pattern "fetch\\(|readability|page body|innerHTML"
 ```
 
 Expected: `fetch(` appears only for DuckDuckGo search and front-end API call. No code fetches candidate result URLs.

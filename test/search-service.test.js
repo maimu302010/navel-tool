@@ -21,7 +21,7 @@ const fixtureHtml = `
       <a class="result__snippet">重生2014我刑侦之王 最新章节 第668章 搜索摘要</a>
     </div>
     <div class="result">
-      <a class="result__a" href="https://other.example/search">重生2014我刑侦之王 小说目录</a>
+      <a class="result__a" href="https://other.example/search">重生2014我刑侦之王 目录</a>
       <a class="result__snippet">目录和章节列表</a>
     </div>
   </body>
@@ -37,7 +37,7 @@ const bingFixtureHtml = `
         <p>重生2014我刑侦之王 最新章节 第668章 搜索摘要</p>
       </li>
       <li class="b_algo">
-        <h2><a href="https://other.example/search">重生2014我刑侦之王 小说目录</a></h2>
+        <h2><a href="https://other.example/search">重生2014我刑侦之王 目录</a></h2>
         <p>目录和章节列表</p>
       </li>
     </ol>
@@ -49,8 +49,8 @@ const soFixtureHtml = `
 <html>
   <body>
     <li class="res-list">
-      <h3><a href="https://www.so.com/link?m=abc">重生2014:我,刑侦之王 - 正文 第六百六十八章 捆人也是有技巧的</a></h3>
-      <p>《重生2014:我,刑侦之王》正文 第六百六十八章 捆人也是有技巧的 kanletao.com反馈</p>
+      <h3><a href="https://www.so.com/link?m=abc">重生2014:我,刑侦之王 - 章节 第六百六十八章 捆人也是有技巧的</a></h3>
+      <p>《重生2014:我,刑侦之王》章节 第六百六十八章 捆人也是有技巧的 kanletao.com反馈</p>
     </li>
   </body>
 </html>
@@ -76,13 +76,13 @@ describe("search-service", () => {
   it("validates required title and positive chapter", () => {
     assert.deepEqual(validateSearchInput("", "668"), {
       ok: false,
-      message: "书名和章节必填，章节必须是正整数。"
+      message: "名称和章节必填，章节必须是正整数。"
     });
-    assert.deepEqual(validateSearchInput("书名", "0"), {
+    assert.deepEqual(validateSearchInput("名称", "0"), {
       ok: false,
-      message: "书名和章节必填，章节必须是正整数。"
+      message: "名称和章节必填，章节必须是正整数。"
     });
-    assert.deepEqual(validateSearchInput("书名", "668"), { ok: true });
+    assert.deepEqual(validateSearchInput("名称", "668"), { ok: true });
   });
 
   it("builds the main chapter query", () => {
@@ -110,7 +110,7 @@ describe("search-service", () => {
   it("parses 360 result HTML", () => {
     const results = parseSoResults(soFixtureHtml);
     assert.equal(results.length, 1);
-    assert.equal(results[0].title, "重生2014:我,刑侦之王 - 正文 第六百六十八章 捆人也是有技巧的");
+    assert.equal(results[0].title, "重生2014:我,刑侦之王 - 章节 第六百六十八章 捆人也是有技巧的");
     assert.equal(results[0].url, "https://www.so.com/link?m=abc");
     assert.equal(results[0].domain, "so.com");
     assert.match(results[0].snippet, /第六百六十八章/);
@@ -133,19 +133,19 @@ describe("search-service", () => {
     }, "重生2014我刑侦之王", "668");
 
     const weak = scoreResult({
-      title: "重生2014我刑侦之王 小说目录",
+      title: "重生2014我刑侦之王 目录",
       snippet: "目录和章节列表",
       url: "https://example.com/book/index.html"
     }, "重生2014我刑侦之王", "668");
 
     assert.ok(strong.score > weak.score);
-    assert.deepEqual(strong.badges, ["书名命中", "章节命中", "摘要命中"]);
+    assert.deepEqual(strong.badges, ["名称命中", "章节命中", "摘要命中"]);
   });
 
   it("scores Chinese-number chapter matches", () => {
     const result = scoreResult({
-      title: "重生2014:我,刑侦之王 - 正文 第六百六十八章 捆人也是有技巧的",
-      snippet: "重生2014:我,刑侦之王 正文 第六百六十八章",
+      title: "重生2014:我,刑侦之王 - 章节 第六百六十八章 捆人也是有技巧的",
+      snippet: "重生2014:我,刑侦之王 章节 第六百六十八章",
       url: "https://example.com/chapter"
     }, "重生2014我刑侦之王", "668");
 
@@ -167,5 +167,34 @@ describe("search-service", () => {
 
     assert.equal(response.status, 200);
     assert.deepEqual(response.body.results, []);
+  });
+
+  it("neutralizes sensitive display terms in returned candidates", async () => {
+    const contentLabel = "\u5c0f\u8bf4";
+    const feedLabel = "\u7f51\u6587";
+    const bodyLabel = "\u6b63\u6587";
+    const fetchImpl = async () => ({
+      ok: true,
+      text: async () => `
+        <html>
+          <body>
+            <li class="res-list">
+              <h3><a href="https://example.com/result">重生2014我刑侦之王 ${contentLabel} ${bodyLabel} 第668章</a></h3>
+              <p>重生2014我刑侦之王 ${feedLabel} ${bodyLabel} 第668章</p>
+            </li>
+          </body>
+        </html>
+      `
+    });
+
+    const response = await searchCandidates({
+      title: "重生2014我刑侦之王",
+      chapter: "668",
+      fetchImpl
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.results[0].title, "重生2014我刑侦之王 内容 章节 第668章");
+    assert.equal(response.body.results[0].snippet, "重生2014我刑侦之王 内容 章节 第668章");
   });
 });
